@@ -1,0 +1,101 @@
+<?php
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+function leave_shedule_menu() {
+  $items = array();
+
+  $items['leave_shedule/%'] = array(
+    'title' => 'График отпусков',
+    'page callback' => 'leave_shedule_page',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'file' => 'leave_shedule.inc',
+  );
+
+  $items['leave_shedule'] = array(
+    'title' => 'График отпусков',
+    'page callback' => 'leave_shedule_page',
+    'access callback' => TRUE,
+    'file' => 'leave_shedule.inc',
+  );
+
+  $items['hr/data/leave_shedule/save'] = array(
+    'title' => 'Сохранение графика отпусков',
+    'page callback' => 'leave_shedule_save',
+    //'page arguments' => array(1),
+    'access callback' => TRUE,
+    'file' => 'leave_shedule.inc',
+  );
+
+  return $items;
+}
+
+function leave_shedule_page($year = NULL) {
+  drupal_add_css(drupal_get_path('module', 'leave_shedule') . '/css/leave_shedule.css');
+  drupal_add_css(drupal_get_path('module', 'leave_shedule') . '/css/pickmeup.css');
+  
+  //drupal_add_js(drupal_get_path('module', 'leave_shedule') . '/js/jquery.js');
+  drupal_add_js(drupal_get_path('module', 'leave_shedule') . '/js/leave_shedule.js');
+  //drupal_add_js(drupal_get_path('module', 'leave_shedule') . '/js/pickmeup.min.js');
+  drupal_add_js(drupal_get_path('module', 'leave_shedule') . '/js/jquery.pickmeup.js');
+  //https://habrahabr.ru/post/303186/
+  //drupal_add_library('system', 'ui.datepicker');
+  //drupal_add_js(drupal_get_path('module', 'leave_shedule') . '/js/jquery.datepicker.extension.range.min.js');
+  //Присваиваем переменной текущую дату
+  $cur_year = getdate();
+  //Определяем, за какой год будет формироваться график отпусков
+  $_year = isset($year) ? $year : $cur_year['year'] + 1;
+  drupal_set_title('График отпусков на ' . $_year);
+
+  //Передаем параметры в javascript
+  $arr_settings = array(
+    'foo' => 'hello!',
+    'holidays' => get_string_holidays($_year), //get_unix_holidays($_year),
+    'leave_days' => get_leave_days($_year),
+    'total_leave_days' => 28, //количество дней отпуска к выбору
+    'year' => $_year,
+  );
+  drupal_add_js($arr_settings, 'setting');
+  
+  $caption = 'Дней отпуска: ' . $arr_settings['total_leave_days'];
+  $caption .= ', использовано: ' . count($arr_settings['leave_days']);
+  $caption .= ', осталось выбрать: ';
+
+  $output = '<div id="total_leave_days">' . $caption . '</div>';
+  $output .= '<div id="leave-shedule" style="width:100%;"></div>';
+  $output .= '<input type="button" id="btn_clear" value="Clear"/>';
+  $output .= '<input type="button" id="btn_change" value="Change"/>';
+  $output .= '<input type="button" id="btn_get" value="Get"/>';
+
+  return $output;
+}
+
+function leave_shedule_save() {
+  $leave_dates = isset($_POST['leave_dates']) ? $_POST['leave_dates'] : array();
+  $year = isset($_POST['year']) ? $_POST['year'] : 2017;
+
+  db_delete('ls_leave_dates')
+      ->condition('uname', 1)
+      ->condition('year', $year)
+      ->execute();
+
+  $range_leave_dates = get_range_leave_dates($leave_dates);
+  foreach ($range_leave_dates as $d_from => $days) {
+    $record = new stdClass();
+    $record->uname = $GLOBALS['user']->uid;
+    $record->year = $year;
+    $record->d_from = $d_from;
+    $record->days = $days;
+    $record->status = 0;
+    $record->comment = '';
+    $record->created = REQUEST_TIME;
+    drupal_write_record('ls_leave_dates', $record);
+  }
+
+  drupal_json_output($range_leave_dates);
+}

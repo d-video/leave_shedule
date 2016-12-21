@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function leave_shedule_schema() {
+  $schema['ls_leave_dates'] = array(
+    'description' => 'Даты отпусков',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uname' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'year' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'd_from' => array(
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => TRUE,
+      ),
+      'days' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'comment' => array(
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'uname' => array('uname'),
+      'year' => array('year'),
+      'status' => array('status'),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
